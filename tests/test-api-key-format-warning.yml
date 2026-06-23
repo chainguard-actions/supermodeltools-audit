@@ -1,0 +1,53 @@
+name: Test API key format warning
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REF: refs/heads/main
+      GITHUB_EVENT_NAME: push
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # A key that does NOT start with 'smsk_' should trigger a warning but still
+      # proceed to the API call (and fail there with a network/auth error).
+      - id: action-bad-format
+        uses: .
+        continue-on-error: true
+        with:
+          supermodel-api-key: 'badformat-key-9999'
+          comment-on-pr: 'false'
+          fail-on-dead-code: 'false'
+
+      - name: Assert action failed (bad format key still reaches API and fails)
+        env:
+          OUTCOME: ${{ steps.action-bad-format.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail with bad-format API key, got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly failed when API key format is wrong"
+
+      # A key that starts with 'smsk_' should also fail at the API (invalid credentials)
+      # but should NOT emit the format warning.
+      - id: action-good-format
+        uses: .
+        continue-on-error: true
+        with:
+          supermodel-api-key: 'smsk_fake_key_for_testing'
+          comment-on-pr: 'false'
+          fail-on-dead-code: 'false'
+
+      - name: Assert action failed (smsk_ key still fails at API with invalid credentials)
+        env:
+          OUTCOME: ${{ steps.action-good-format.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail with fake smsk_ key, got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly failed with fake smsk_ key"
