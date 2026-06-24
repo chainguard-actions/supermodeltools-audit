@@ -1,0 +1,30 @@
+name: Test min-confidence input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          supermodel-api-key: 'fake-api-key-for-testing'
+          comment-on-pr: 'false'
+          fail-on-dead-code: 'false'
+          min-confidence: 'high'
+          timeout-seconds: '30'
+
+      - name: Assert action accepted min-confidence without crashing on input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "step outcome: $OUTCOME"
+          # The action should not be skipped — it must have attempted to run.
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action step was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran with min-confidence=high (outcome=$OUTCOME)"

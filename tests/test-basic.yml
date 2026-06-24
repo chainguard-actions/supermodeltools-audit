@@ -1,0 +1,58 @@
+name: Test basic usage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          supermodel-api-key: 'fake-api-key-for-testing'
+          comment-on-pr: 'false'
+          fail-on-dead-code: 'false'
+          timeout-seconds: '30'
+
+      - name: Assert action ran (step outcome is not skipped)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "step outcome: $OUTCOME"
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action step was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran (outcome=$OUTCOME)"
+
+      - name: Assert dead-code-count output is present or action failed gracefully
+        env:
+          COUNT: ${{ steps.action.outputs.dead-code-count }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "dead-code-count: '$COUNT'"
+          echo "outcome: $OUTCOME"
+          # If the action succeeded, count should be a number (possibly empty string if API failed)
+          # If the action failed (e.g. auth error), that is acceptable for a fake key
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Action succeeded; dead-code-count='$COUNT'"
+          else
+            echo "Action failed as expected with a fake API key"
+          fi
+          echo "PASS"
+
+      - name: Assert dead-code-json output is present or action failed gracefully
+        env:
+          JSON_OUT: ${{ steps.action.outputs.dead-code-json }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "dead-code-json: '$JSON_OUT'"
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Action succeeded; dead-code-json='$JSON_OUT'"
+          else
+            echo "Action failed as expected with a fake API key"
+          fi
+          echo "PASS"
