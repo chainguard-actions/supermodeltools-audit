@@ -1,6 +1,6 @@
 # supermodeltools/audit
 
-Find unreachable functions in your codebase using Supermodel call graphs
+Find unused code in your codebase using Supermodel static analysis
 
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/supermodeltools/audit](https://github.com/supermodeltools/audit).
 
