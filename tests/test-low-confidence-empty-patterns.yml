@@ -1,4 +1,4 @@
-name: Test fail-on-dead-code false
+name: Test low confidence with empty ignore patterns
 on:
   workflow_dispatch:
 jobs:
@@ -14,16 +14,17 @@ jobs:
           supermodel-api-key: 'fake-api-key-for-testing'
           comment-on-pr: 'false'
           fail-on-dead-code: 'false'
+          ignore-patterns: '[]'
+          min-confidence: 'low'
           timeout-seconds: '30'
 
-      - name: Assert action does not fail due to dead code flag
+      - name: Assert action accepts low confidence and empty ignore-patterns
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
           echo "outcome: $OUTCOME"
-          # With fail-on-dead-code=false, the action should not fail because of dead code.
-          # It may still fail due to invalid API key, but that is a different error path.
-          # We verify the outcome is either success or failure (not cancelled/skipped).
+          # The action should accept 'low' as a valid min-confidence value and '[]' as ignore-patterns.
+          # It may fail due to invalid API key, but should not fail due to bad input parsing.
           if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action completed with outcome: $OUTCOME"
           else

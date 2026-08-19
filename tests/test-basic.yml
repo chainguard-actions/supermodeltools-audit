@@ -16,43 +16,31 @@ jobs:
           fail-on-dead-code: 'false'
           timeout-seconds: '30'
 
-      - name: Assert action ran (step outcome is not skipped)
+      - name: Assert outputs are defined or action failed gracefully
         env:
           OUTCOME: ${{ steps.action.outcome }}
+          COUNT: ${{ steps.action.outputs.dead-code-count }}
+          JSON_OUT: ${{ steps.action.outputs.dead-code-json }}
         run: |
-          echo "step outcome: $OUTCOME"
-          if [ "$OUTCOME" = "skipped" ]; then
-            echo "FAIL: action step was skipped unexpectedly"
+          echo "outcome: $OUTCOME"
+          echo "dead-code-count: $COUNT"
+          echo "dead-code-json: $JSON_OUT"
+          # The action either succeeds (with outputs) or fails gracefully with an API error.
+          # Both are acceptable — we just verify it doesn't hang or produce unexpected output.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Action succeeded"
+            # If it succeeded, dead-code-count should be a number
+            if [ -n "$COUNT" ]; then
+              echo "dead-code-count is set: $COUNT"
+              if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+                echo "FAIL: dead-code-count is not a number: $COUNT"
+                exit 1
+              fi
+            fi
+            echo "PASS: action completed successfully"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (expected with fake API key)"
+          else
+            echo "FAIL: unexpected outcome: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action ran (outcome=$OUTCOME)"
-
-      - name: Assert dead-code-count output is present or action failed gracefully
-        env:
-          COUNT: ${{ steps.action.outputs.dead-code-count }}
-          OUTCOME: ${{ steps.action.outcome }}
-        run: |
-          echo "dead-code-count: '$COUNT'"
-          echo "outcome: $OUTCOME"
-          # If the action succeeded, count should be a number (possibly empty string if API failed)
-          # If the action failed (e.g. auth error), that is acceptable for a fake key
-          if [ "$OUTCOME" = "success" ]; then
-            echo "Action succeeded; dead-code-count='$COUNT'"
-          else
-            echo "Action failed as expected with a fake API key"
-          fi
-          echo "PASS"
-
-      - name: Assert dead-code-json output is present or action failed gracefully
-        env:
-          JSON_OUT: ${{ steps.action.outputs.dead-code-json }}
-          OUTCOME: ${{ steps.action.outcome }}
-        run: |
-          echo "dead-code-json: '$JSON_OUT'"
-          echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" = "success" ]; then
-            echo "Action succeeded; dead-code-json='$JSON_OUT'"
-          else
-            echo "Action failed as expected with a fake API key"
-          fi
-          echo "PASS"
