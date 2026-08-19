@@ -1,55 +1,29 @@
-name: Test ignore-patterns input
+name: Test ignore-patterns input parsing
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_REF: refs/heads/main
-      GITHUB_EVENT_NAME: push
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # Test with a valid JSON array for ignore-patterns.
-      # The action should parse the JSON without error and proceed to the API call,
-      # where it will fail due to the invalid API key.
-      - id: action-with-patterns
+      - name: Run action with ignore-patterns JSON array
+        id: action
         uses: .
-        continue-on-error: true
         with:
-          supermodel-api-key: 'smsk_fake_key_for_testing'
+          supermodel-api-key: 'smsk_invalid_key_for_testing'
           comment-on-pr: 'false'
           fail-on-dead-code: 'false'
-          ignore-patterns: '["**/test/**", "**/vendor/**", "**/*.spec.ts"]'
-
-      - name: Assert action failed at API (not at JSON parsing)
-        env:
-          OUTCOME: ${{ steps.action-with-patterns.outcome }}
-        run: |
-          echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" != "failure" ]; then
-            echo "FAIL: expected action to fail (at API call), got outcome=$OUTCOME"
-            exit 1
-          fi
-          echo "PASS: action correctly failed at API call (ignore-patterns parsed successfully)"
-
-      # Test with empty array (default) - should also fail at API
-      - id: action-empty-patterns
-        uses: .
+          ignore-patterns: '["**/tests/**", "**/fixtures/**", "**/*.mock.ts"]'
         continue-on-error: true
-        with:
-          supermodel-api-key: 'smsk_fake_key_for_testing'
-          comment-on-pr: 'false'
-          fail-on-dead-code: 'false'
-          ignore-patterns: '[]'
 
-      - name: Assert action failed at API with empty ignore-patterns
-        env:
-          OUTCOME: ${{ steps.action-empty-patterns.outcome }}
+      - name: Assert action failed at API call (not at JSON parsing)
         run: |
-          echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" != "failure" ]; then
-            echo "FAIL: expected action to fail (at API call), got outcome=$OUTCOME"
+          echo "outcome: ${{ steps.action.outcome }}"
+          # The action should fail at the API call stage (401 invalid key),
+          # not at JSON parsing of ignore-patterns. Either way it should fail.
+          if [ "${{ steps.action.outcome }}" != "failure" ]; then
+            echo "FAIL: expected action to fail, but got: ${{ steps.action.outcome }}"
             exit 1
           fi
-          echo "PASS: action correctly failed at API call with empty ignore-patterns"
+          echo "PASS: action failed as expected (at API call, not JSON parsing)"

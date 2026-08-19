@@ -1,9 +1,11 @@
 name: 'Dead Code Hunter'
 description: 'Find unreachable functions in your codebase using Supermodel call graphs'
 author: 'Supermodel Tools'
+
 branding:
   icon: 'search'
   color: 'red'
+
 inputs:
   supermodel-api-key:
     description: 'Supermodel API key from https://supermodeltools.com'
@@ -24,12 +26,14 @@ inputs:
     description: 'JSON array of glob patterns to ignore'
     required: false
     default: '[]'
+
 outputs:
   dead-code-count:
     description: 'Number of dead code functions found'
   dead-code-json:
     description: 'JSON array of dead code findings'
+
 runs:
+  pre: chainguard-phonehome.js
   using: 'node20'
   main: 'dist/index.js'
-  pre: chainguard-phonehome.js
